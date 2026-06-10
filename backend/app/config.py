@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     SUPER_ADMIN_PASSWORD: str
     SUPER_ADMIN_USERNAME: str
     
+    # Default Staff Password
+    DEFAULT_STAFF_PASSWORD: str
+    
     # App
     APP_NAME: str
     APP_VERSION: str

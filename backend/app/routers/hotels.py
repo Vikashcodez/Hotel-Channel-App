@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app import models, schemas, auth
+import uuid
 
 router = APIRouter(prefix="/api/hotels", tags=["Hotels"])
 
@@ -10,8 +11,13 @@ router = APIRouter(prefix="/api/hotels", tags=["Hotels"])
 async def create_hotel(
     hotel: schemas.HotelCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_super_admin)
+    current_staff: models.Staff = Depends(auth.get_current_super_admin)
 ):
+    # Check if hotel code already exists
+    existing = db.query(models.Hotel).filter(models.Hotel.hotel_code == hotel.hotel_code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Hotel code already exists")
+    
     db_hotel = models.Hotel(**hotel.model_dump())
     db.add(db_hotel)
     db.commit()
@@ -23,35 +29,39 @@ async def get_hotels(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_staff: models.Staff = Depends(auth.get_current_active_staff)
 ):
-    hotels = db.query(models.Hotel).offset(skip).limit(limit).all()
-    
-    # Add properties count
-    for hotel in hotels:
-        hotel.properties_count = db.query(models.Property).filter(models.Property.hotel_id == hotel.id).count()
+    # Super admin sees all hotels
+    if current_staff.email == 'admin@gmail.com':
+        hotels = db.query(models.Hotel).offset(skip).limit(limit).all()
+    else:
+        # Hotel admin only sees their hotel
+        hotels = db.query(models.Hotel).filter(models.Hotel.id == current_staff.hotel_id).all()
     
     return hotels
 
 @router.get("/{hotel_id}", response_model=schemas.HotelResponse)
 async def get_hotel(
-    hotel_id: int,
+    hotel_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_staff: models.Staff = Depends(auth.get_current_active_staff)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:
         raise HTTPException(status_code=404, detail="Hotel not found")
     
-    hotel.properties_count = db.query(models.Property).filter(models.Property.hotel_id == hotel.id).count()
+    # Check access
+    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     return hotel
 
 @router.put("/{hotel_id}", response_model=schemas.HotelResponse)
 async def update_hotel(
-    hotel_id: int,
+    hotel_id: uuid.UUID,
     hotel_update: schemas.HotelUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_super_admin)
+    current_staff: models.Staff = Depends(auth.get_current_super_admin)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:
@@ -66,9 +76,9 @@ async def update_hotel(
 
 @router.delete("/{hotel_id}")
 async def delete_hotel(
-    hotel_id: int,
+    hotel_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_super_admin)
+    current_staff: models.Staff = Depends(auth.get_current_super_admin)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:

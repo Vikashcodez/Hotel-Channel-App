@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
+import uuid
 
 engine = create_engine(
     settings.DATABASE_URL,
@@ -19,3 +20,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Helper function to generate UUID
+def generate_uuid():
+    return str(uuid.uuid4())
