@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/hotels", tags=["Hotels"])
 async def create_hotel(
     hotel: schemas.HotelCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_super_admin)
+    current_user = Depends(auth.get_current_super_admin)  # Only super admin can create hotels
 ):
     # Check if hotel code already exists
     existing = db.query(models.Hotel).filter(models.Hotel.hotel_code == hotel.hotel_code).first()
@@ -29,14 +29,14 @@ async def get_hotels(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     # Super admin sees all hotels
-    if current_staff.email == 'admin@gmail.com':
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         hotels = db.query(models.Hotel).offset(skip).limit(limit).all()
     else:
         # Hotel admin only sees their hotel
-        hotels = db.query(models.Hotel).filter(models.Hotel.id == current_staff.hotel_id).all()
+        hotels = db.query(models.Hotel).filter(models.Hotel.id == current_user.hotel_id).all()
     
     return hotels
 
@@ -44,15 +44,16 @@ async def get_hotels(
 async def get_hotel(
     hotel_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:
         raise HTTPException(status_code=404, detail="Hotel not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return hotel
 
@@ -61,7 +62,7 @@ async def update_hotel(
     hotel_id: uuid.UUID,
     hotel_update: schemas.HotelUpdate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_super_admin)
+    current_user = Depends(auth.get_current_super_admin)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:
@@ -78,7 +79,7 @@ async def update_hotel(
 async def delete_hotel(
     hotel_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_super_admin)
+    current_user = Depends(auth.get_current_super_admin)
 ):
     hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if not hotel:

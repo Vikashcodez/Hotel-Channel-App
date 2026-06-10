@@ -67,7 +67,7 @@ class Staff(Base):
     __tablename__ = "staff"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    hotel_id = Column(UUID(as_uuid=True), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
+    hotel_id = Column(UUID(as_uuid=True), ForeignKey("hotels.id", ondelete="SET NULL"), nullable=True)
     property_id = Column(UUID(as_uuid=True), ForeignKey("properties.id", ondelete="SET NULL"), nullable=True)
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="SET NULL"), nullable=True)
     employee_code = Column(String(50))

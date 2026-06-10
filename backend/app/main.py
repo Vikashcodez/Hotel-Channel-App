@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from app.database import engine, get_db, Base
-from app import models, auth
+from app.database import engine, Base
 from app.routers import auth as auth_router, hotels, properties, roles, staff
 from app.config import settings
 import logging
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, debug=settings.DEBUG)
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
 # CORS middleware
 app.add_middleware(
@@ -33,56 +31,13 @@ app.include_router(staff.router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Create super admin on startup if not exists"""
-    try:
-        db = next(get_db())
-        
-        # Check if super admin exists
-        super_admin = db.query(models.Staff).filter(
-            models.Staff.email == settings.SUPER_ADMIN_EMAIL
-        ).first()
-        
-        if not super_admin:
-            logger.info("Creating super admin user...")
-            
-            # Create a default hotel for super admin if needed
-            default_hotel = db.query(models.Hotel).first()
-            if not default_hotel:
-                default_hotel = models.Hotel(
-                    hotel_name="System Hotel",
-                    hotel_code="SYS001",
-                    email=settings.SUPER_ADMIN_EMAIL,
-                    status="ACTIVE"
-                )
-                db.add(default_hotel)
-                db.commit()
-                db.refresh(default_hotel)
-            
-            hashed_password = auth.get_password_hash(settings.SUPER_ADMIN_PASSWORD)
-            super_admin = models.Staff(
-                hotel_id=default_hotel.id,
-                name="System Super Admin",
-                email=settings.SUPER_ADMIN_EMAIL,
-                employee_code="SUPER001",
-                password_hash=hashed_password,
-                is_hotel_admin=False,
-                is_property_admin=False,
-                status="ACTIVE"
-            )
-            db.add(super_admin)
-            db.commit()
-            logger.info(f"Super admin created successfully: {settings.SUPER_ADMIN_EMAIL}")
-        else:
-            logger.info("Super admin already exists")
-            
-    except Exception as e:
-        logger.error(f"Startup error: {e}")
-    finally:
-        db.close()
+    """Startup event - no super admin creation needed"""
+    logger.info(f"PMS System starting with super admin from .env: {settings.SUPER_ADMIN_EMAIL}")
+    logger.info("Super admin is authenticated directly from .env file, not stored in database")
 
 @app.get("/")
 async def root():
-    return {"message": "PMS Management System API", "version": settings.APP_VERSION}
+    return {"message": "PMS Management System API", "version": "2.0.0"}
 
 @app.get("/health")
 async def health_check():

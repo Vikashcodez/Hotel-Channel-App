@@ -112,13 +112,14 @@ class StaffCreate(StaffBase):
     hotel_id: UUID
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
-    password: Optional[str] = None  # If not provided, use default
+    password: Optional[str] = None
 
 class StaffUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     employee_code: Optional[str] = None
+    hotel_id: Optional[UUID] = None
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
     is_hotel_admin: Optional[bool] = None
@@ -128,7 +129,7 @@ class StaffUpdate(BaseModel):
 
 class StaffResponse(StaffBase):
     id: UUID
-    hotel_id: UUID
+    hotel_id: Optional[UUID] = None
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
     created_at: datetime
@@ -144,9 +145,10 @@ class StaffResponse(StaffBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    staff_id: UUID
+    staff_id: Optional[str] = None  # Can be None for super admin
     email: str
     name: str
+    is_super_admin: bool
     is_hotel_admin: bool
     is_property_admin: bool
     hotel_id: Optional[UUID] = None

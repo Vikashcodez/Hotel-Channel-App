@@ -27,14 +27,14 @@ def get_staff_by_id(staff_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Staff not found")
     return staff
 
-def check_hotel_access(hotel_id: str, current_staff: models.Staff = Depends(auth.get_current_active_staff), db: Session = Depends(get_db)):
+def check_hotel_access(hotel_id: str, current_user = Depends(auth.get_current_active_user), db: Session = Depends(get_db)):
     # Super admin can access all hotels
-    if current_staff.email == 'admin@gmail.com':
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         return True
     
     # Hotel admin can only access their own hotel
-    if current_staff.is_hotel_admin:
-        if current_staff.hotel_id == hotel_id:
+    if hasattr(current_user, 'is_hotel_admin') and current_user.is_hotel_admin:
+        if str(current_user.hotel_id) == hotel_id:
             return True
     
     raise HTTPException(
@@ -42,20 +42,21 @@ def check_hotel_access(hotel_id: str, current_staff: models.Staff = Depends(auth
         detail="Access denied to this hotel"
     )
 
-def check_property_access(property_id: str, current_staff: models.Staff = Depends(auth.get_current_active_staff), db: Session = Depends(get_db)):
+def check_property_access(property_id: str, current_user = Depends(auth.get_current_active_user), db: Session = Depends(get_db)):
     # Super admin can access all properties
-    if current_staff.email == 'admin@gmail.com':
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         return True
     
     # Hotel admin can access properties of their hotel
-    if current_staff.is_hotel_admin:
+    if hasattr(current_user, 'is_hotel_admin') and current_user.is_hotel_admin:
         property_obj = db.query(models.Property).filter(models.Property.id == property_id).first()
-        if property_obj and property_obj.hotel_id == current_staff.hotel_id:
+        if property_obj and str(property_obj.hotel_id) == str(current_user.hotel_id):
             return True
     
     # Property admin can access their assigned property
-    if current_staff.is_property_admin and current_staff.property_id == property_id:
-        return True
+    if hasattr(current_user, 'is_property_admin') and current_user.is_property_admin:
+        if str(current_user.property_id) == property_id:
+            return True
     
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

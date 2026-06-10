@@ -11,16 +11,17 @@ router = APIRouter(prefix="/api/properties", tags=["Properties"])
 async def create_property(
     property_data: schemas.PropertyCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_hotel_admin)
 ):
-    # Check if hotel exists and user has access
+    # Check if hotel exists
     hotel = db.query(models.Hotel).filter(models.Hotel.id == property_data.hotel_id).first()
     if not hotel:
         raise HTTPException(status_code=404, detail="Hotel not found")
     
-    # Check if hotel admin has access to this hotel
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != property_data.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    # Check if hotel admin has access to this hotel (for non-super admin)
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != property_data.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied to this hotel")
     
     # Check if property code already exists in the hotel
     existing = db.query(models.Property).filter(
@@ -42,23 +43,23 @@ async def get_properties(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     query = db.query(models.Property)
     
     # Super admin
-    if current_staff.email == 'admin@gmail.com':
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         if hotel_id:
             query = query.filter(models.Property.hotel_id == hotel_id)
     # Hotel admin - see properties of their hotel
-    elif current_staff.is_hotel_admin:
-        query = query.filter(models.Property.hotel_id == current_staff.hotel_id)
+    elif hasattr(current_user, 'is_hotel_admin') and current_user.is_hotel_admin:
+        query = query.filter(models.Property.hotel_id == current_user.hotel_id)
     # Property admin - see only their property
-    elif current_staff.is_property_admin:
-        query = query.filter(models.Property.id == current_staff.property_id)
+    elif hasattr(current_user, 'is_property_admin') and current_user.is_property_admin:
+        query = query.filter(models.Property.id == current_user.property_id)
     else:
         # Regular staff - see properties of their hotel
-        query = query.filter(models.Property.hotel_id == current_staff.hotel_id)
+        query = query.filter(models.Property.hotel_id == current_user.hotel_id)
     
     properties = query.offset(skip).limit(limit).all()
     
@@ -72,14 +73,14 @@ async def get_properties(
 async def get_property(
     property_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     property_obj = db.query(models.Property).filter(models.Property.id == property_id).first()
     if not property_obj:
         raise HTTPException(status_code=404, detail="Property not found")
     
     # Check access
-    await dependencies.check_property_access(str(property_id), current_staff, db)
+    await dependencies.check_property_access(str(property_id), current_user, db)
     
     property_obj.staff_count = db.query(models.Staff).filter(models.Staff.property_id == property_id).count()
     return property_obj
@@ -89,15 +90,16 @@ async def update_property(
     property_id: uuid.UUID,
     property_update: schemas.PropertyUpdate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_hotel_admin)
 ):
     property_obj = db.query(models.Property).filter(models.Property.id == property_id).first()
     if not property_obj:
         raise HTTPException(status_code=404, detail="Property not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != property_obj.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != property_obj.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     for key, value in property_update.model_dump(exclude_unset=True).items():
         setattr(property_obj, key, value)
@@ -110,15 +112,16 @@ async def update_property(
 async def delete_property(
     property_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_hotel_admin)
 ):
     property_obj = db.query(models.Property).filter(models.Property.id == property_id).first()
     if not property_obj:
         raise HTTPException(status_code=404, detail="Property not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != property_obj.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != property_obj.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     db.delete(property_obj)
     db.commit()

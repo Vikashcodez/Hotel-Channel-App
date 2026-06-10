@@ -10,21 +10,21 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     
-    # Super Admin
+    # Super Admin (from .env, not stored in DB)
     SUPER_ADMIN_EMAIL: str
     SUPER_ADMIN_PASSWORD: str
-    SUPER_ADMIN_USERNAME: str
+    SUPER_ADMIN_NAME: str = "System Super Admin"
     
     # Default Staff Password
     DEFAULT_STAFF_PASSWORD: str
     
-    # App
+    # Application Configuration
     APP_NAME: str
-    APP_VERSION: str
-    DEBUG: bool
+    DEBUG: bool = False
     
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()
