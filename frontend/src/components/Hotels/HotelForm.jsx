@@ -5,33 +5,33 @@ import toast from 'react-hot-toast'
 
 const HotelForm = ({ hotel, onClose }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    zip_code: '',
-    phone: '',
+    hotel_name: '',
+    hotel_code: '',
     email: '',
-    website: '',
-    total_rooms: 0,
-    rating: 0,
-    is_active: true
+    phone: '',
+    logo: '',
+    status: 'ACTIVE'
   })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (hotel) {
-      setFormData(hotel)
+      setFormData({
+        hotel_name: hotel.hotel_name,
+        hotel_code: hotel.hotel_code,
+        email: hotel.email || '',
+        phone: hotel.phone || '',
+        logo: hotel.logo || '',
+        status: hotel.status
+      })
     }
   }, [hotel])
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     })
   }
 
@@ -57,7 +57,7 @@ const HotelForm = ({ hotel, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-md w-full">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-bold">
             {hotel ? 'Edit Hotel' : 'Add New Hotel'}
@@ -68,156 +68,79 @@ const HotelForm = ({ hotel, onClose }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-              <input
-                type="text"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
-              <input
-                type="text"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
-              <input
-                type="text"
-                name="zip_code"
-                value={formData.zip_code}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-              <input
-                type="url"
-                name="website"
-                value={formData.website}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Rooms</label>
-              <input
-                type="number"
-                name="total_rooms"
-                value={formData.total_rooms}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-              <input
-                type="number"
-                step="0.1"
-                name="rating"
-                value={formData.rating}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="3"
-                className="input-field"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">Active</span>
-              </label>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name *</label>
+            <input
+              type="text"
+              name="hotel_name"
+              value={formData.hotel_name}
+              onChange={handleChange}
+              required
+              className="input-field"
+              placeholder="Enter hotel name"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Code *</label>
+            <input
+              type="text"
+              name="hotel_code"
+              value={formData.hotel_code}
+              onChange={handleChange}
+              required
+              className="input-field"
+              placeholder="Unique hotel code"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="contact@hotel.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Phone number"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+            <input
+              type="text"
+              name="logo"
+              value={formData.logo}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Logo image URL"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
           </div>
           
           <div className="flex justify-end space-x-3 pt-4 border-t">

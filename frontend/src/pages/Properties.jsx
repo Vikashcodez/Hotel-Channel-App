@@ -8,7 +8,7 @@ import { PlusIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 const Properties = () => {
-  const { user, isSuperAdmin, isAdmin } = useAuth()
+  const { user, isSuperAdmin, isHotelAdmin, isPropertyAdmin } = useAuth()
   const [properties, setProperties] = useState([])
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,17 +22,22 @@ const Properties = () => {
 
   const fetchData = async () => {
     try {
+      let propertiesData, hotelsData = []
+      
       if (isSuperAdmin) {
-        const [propertiesData, hotelsData] = await Promise.all([
-          getProperties(filterHotelId || null),
-          getHotels()
-        ])
-        setProperties(propertiesData)
-        setHotels(hotelsData)
-      } else if (isAdmin) {
-        const propertiesData = await getProperties()
-        setProperties(propertiesData)
+        propertiesData = await getProperties(filterHotelId || null)
+        hotelsData = await getHotels()
+      } else if (isHotelAdmin && user?.hotel_id) {
+        propertiesData = await getProperties(user.hotel_id)
+      } else if (isPropertyAdmin && user?.property_id) {
+        propertiesData = await getProperties()
+        propertiesData = propertiesData.filter(p => p.id === user.property_id)
+      } else {
+        propertiesData = await getProperties()
       }
+      
+      setProperties(propertiesData)
+      setHotels(hotelsData)
     } catch (error) {
       toast.error('Failed to fetch properties')
     } finally {
@@ -63,6 +68,9 @@ const Properties = () => {
     fetchData()
   }
 
+  const canAddProperty = isSuperAdmin || isHotelAdmin
+  const canEditProperty = isSuperAdmin || isHotelAdmin
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>
   }
@@ -72,9 +80,11 @@ const Properties = () => {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
-          <p className="text-gray-600 mt-1">Manage your property portfolio</p>
+          <p className="text-gray-600 mt-1">
+            {isPropertyAdmin ? 'View your assigned property' : 'Manage your property portfolio'}
+          </p>
         </div>
-        {(isSuperAdmin || isAdmin) && (
+        {canAddProperty && (
           <button
             onClick={() => setShowForm(true)}
             className="btn-primary flex items-center space-x-2"
@@ -85,7 +95,7 @@ const Properties = () => {
         )}
       </div>
 
-      {isSuperAdmin && (
+      {isSuperAdmin && hotels.length > 0 && (
         <div className="card">
           <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Hotel</label>
           <select
@@ -95,7 +105,7 @@ const Properties = () => {
           >
             <option value="">All Hotels</option>
             {hotels.map(hotel => (
-              <option key={hotel.id} value={hotel.id}>{hotel.name}</option>
+              <option key={hotel.id} value={hotel.id}>{hotel.hotel_name}</option>
             ))}
           </select>
         </div>
@@ -105,7 +115,7 @@ const Properties = () => {
         properties={properties}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        canEdit={isSuperAdmin || isAdmin}
+        canEdit={canEditProperty}
       />
 
       {showForm && (

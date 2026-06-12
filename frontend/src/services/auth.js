@@ -18,7 +18,20 @@ export const getCurrentUser = async () => {
   return response.data
 }
 
-export const registerUser = async (userData) => {
+export const changePassword = async (oldPassword, newPassword) => {
+  const response = await api.post('/auth/change-password', {
+    old_password: oldPassword,
+    new_password: newPassword
+  })
+  return response.data
+}
+
+export const register = async (userData) => {
   const response = await api.post('/auth/register', userData)
   return response.data
+}
+
+export const logout = async () => {
+  localStorage.removeItem('token')
+  return { success: true }
 }

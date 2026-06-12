@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { getHotels, deleteHotel } from '../services/hotelService'
+import { getHotels } from '../services/hotelService'
 import HotelList from '../components/Hotels/HotelList'
-import HotelForm from '../components/Hotels/HotelForm'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 const Hotels = () => {
-  const { isSuperAdmin } = useAuth()
+  const { isSuperAdmin, isHotelAdmin } = useAuth()
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingHotel, setEditingHotel] = useState(null)
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -30,29 +27,6 @@ const Hotels = () => {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this hotel?')) {
-      try {
-        await deleteHotel(id)
-        toast.success('Hotel deleted successfully')
-        fetchHotels()
-      } catch (error) {
-        toast.error('Failed to delete hotel')
-      }
-    }
-  }
-
-  const handleEdit = (hotel) => {
-    setEditingHotel(hotel)
-    setShowForm(true)
-  }
-
-  const handleFormClose = () => {
-    setShowForm(false)
-    setEditingHotel(null)
-    fetchHotels()
-  }
-
   if (!isSuperAdmin) {
     return (
       <div className="text-center py-12">
@@ -67,32 +41,18 @@ const Hotels = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hotels</h1>
-          <p className="text-gray-600 mt-1">Manage your hotel properties</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span>Add Hotel</span>
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Hotels</h1>
+        <p className="text-gray-600 mt-1">View all hotels in the system</p>
+        <p className="text-sm text-blue-600 mt-1">Note: Super Admin has read-only access to hotels.</p>
       </div>
 
       <HotelList
         hotels={hotels}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={null}
+        onDelete={null}
+        readOnly={true}
       />
-
-      {showForm && (
-        <HotelForm
-          hotel={editingHotel}
-          onClose={handleFormClose}
-        />
-      )}
     </div>
   )
 }

@@ -1,32 +1,51 @@
 import React, { useState, useEffect } from 'react'
 import { createProperty, updateProperty } from '../../services/propertyService'
+import { useAuth } from '../../contexts/AuthContext'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 const PropertyForm = ({ property, hotels, onClose }) => {
+  const { user, isHotelAdmin, isSuperAdmin } = useAuth()
   const [formData, setFormData] = useState({
-    name: '',
-    property_type: '',
-    description: '',
+    property_name: '',
+    property_code: '',
+    is_main_branch: false,
+    gst_number: '',
+    email: '',
+    phone: '',
     address: '',
     city: '',
     state: '',
     country: '',
-    zip_code: '',
-    phone: '',
-    email: '',
-    total_units: 0,
-    priority: 0,
+    pincode: '',
+    total_floors: 0,
     hotel_id: '',
-    is_active: true
+    status: 'ACTIVE'
   })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (property) {
-      setFormData(property)
+      setFormData({
+        property_name: property.property_name,
+        property_code: property.property_code,
+        is_main_branch: property.is_main_branch || false,
+        gst_number: property.gst_number || '',
+        email: property.email || '',
+        phone: property.phone || '',
+        address: property.address || '',
+        city: property.city || '',
+        state: property.state || '',
+        country: property.country || '',
+        pincode: property.pincode || '',
+        total_floors: property.total_floors || 0,
+        hotel_id: property.hotel_id,
+        status: property.status
+      })
+    } else if (isHotelAdmin && user?.hotel_id) {
+      setFormData(prev => ({ ...prev, hotel_id: user.hotel_id }))
     }
-  }, [property])
+  }, [property, isHotelAdmin, user])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -69,8 +88,8 @@ const PropertyForm = ({ property, hotels, onClose }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
+          {isSuperAdmin && hotels && hotels.length > 0 && (
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Hotel *</label>
               <select
                 name="hotel_id"
@@ -81,17 +100,19 @@ const PropertyForm = ({ property, hotels, onClose }) => {
               >
                 <option value="">Select Hotel</option>
                 {hotels.map(hotel => (
-                  <option key={hotel.id} value={hotel.id}>{hotel.name}</option>
+                  <option key={hotel.id} value={hotel.id}>{hotel.hotel_name}</option>
                 ))}
               </select>
             </div>
-            
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Property Name *</label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="property_name"
+                value={formData.property_name}
                 onChange={handleChange}
                 required
                 className="input-field"
@@ -99,36 +120,11 @@ const PropertyForm = ({ property, hotels, onClose }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Code *</label>
               <input
                 type="text"
-                name="property_type"
-                value={formData.property_type}
-                onChange={handleChange}
-                placeholder="e.g., Hotel, Resort, Apartment"
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority (0-100)</label>
-              <input
-                type="number"
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                min="0"
-                max="100"
-                className="input-field"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
+                name="property_code"
+                value={formData.property_code}
                 onChange={handleChange}
                 required
                 className="input-field"
@@ -136,57 +132,24 @@ const PropertyForm = ({ property, hotels, onClose }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
+              <label className="flex items-center space-x-2 mt-6">
+                <input
+                  type="checkbox"
+                  name="is_main_branch"
+                  checked={formData.is_main_branch}
+                  onChange={handleChange}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Main Branch</span>
+              </label>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
               <input
                 type="text"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
-              <input
-                type="text"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                required
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
-              <input
-                type="text"
-                name="zip_code"
-                value={formData.zip_code}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
+                name="gst_number"
+                value={formData.gst_number}
                 onChange={handleChange}
                 className="input-field"
               />
@@ -204,39 +167,95 @@ const PropertyForm = ({ property, hotels, onClose }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Units</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+              <input
+                type="text"
+                name="pincode"
+                value={formData.pincode}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Floors</label>
               <input
                 type="number"
-                name="total_units"
-                value={formData.total_units}
+                name="total_floors"
+                value={formData.total_floors}
                 onChange={handleChange}
+                min="0"
                 className="input-field"
               />
             </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="3"
-                className="input-field"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">Active</span>
-              </label>
-            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
           </div>
           
           <div className="flex justify-end space-x-3 pt-4 border-t">

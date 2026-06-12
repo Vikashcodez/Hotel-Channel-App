@@ -10,12 +10,9 @@ const PropertyList = ({ properties, onEdit, onDelete, canEdit }) => {
     )
   }
 
-  // Sort properties by priority (higher priority first)
-  const sortedProperties = [...properties].sort((a, b) => b.priority - a.priority)
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {sortedProperties.map((property) => (
+      {properties.map((property) => (
         <PropertyCard
           key={property.id}
           property={property}

@@ -6,32 +6,52 @@ import {
   BuildingOfficeIcon, 
   HomeModernIcon, 
   UsersIcon,
-  KeyIcon
+  UserCircleIcon
 } from '@heroicons/react/24/outline'
 
 const Sidebar = () => {
-  const { isSuperAdmin, isAdmin, user } = useAuth()
+  const { user, isSuperAdmin, isHotelAdmin, isPropertyAdmin } = useAuth()
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['super_admin', 'admin', 'staff'] },
-    { name: 'Hotels', href: '/hotels', icon: BuildingOfficeIcon, roles: ['super_admin'] },
-    { name: 'Properties', href: '/properties', icon: HomeModernIcon, roles: ['super_admin', 'admin'] },
-    { name: 'Users', href: '/users', icon: UsersIcon, roles: ['super_admin'] },
-  ]
-
-  // Add property dashboard for users assigned to a property
-  if (user?.property_id) {
-    navigation.push({ 
-      name: 'My Property', 
-      href: '/property-dashboard', 
-      icon: KeyIcon, 
-      roles: ['admin', 'staff'] 
-    })
+  const getNavigation = () => {
+    // Super admin navigation (view only, no add buttons in list views)
+    if (user?.email === 'admin@gmail.com' || isSuperAdmin) {
+      return [
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'Hotels', href: '/hotels', icon: BuildingOfficeIcon },
+        { name: 'Properties', href: '/properties', icon: HomeModernIcon },
+        { name: 'Staff', href: '/staff', icon: UsersIcon },
+        { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+      ]
+    }
+    
+    // Hotel admin navigation (full management)
+    if (isHotelAdmin) {
+      return [
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'Properties', href: '/properties', icon: HomeModernIcon },
+        { name: 'Staff', href: '/staff', icon: UsersIcon },
+        { name: 'Roles', href: '/roles', icon: UsersIcon },
+        { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+      ]
+    }
+    
+    // Property admin navigation
+    if (isPropertyAdmin) {
+      return [
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'Staff', href: '/staff', icon: UsersIcon },
+        { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+      ]
+    }
+    
+    // Staff navigation
+    return [
+      { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+      { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+    ]
   }
 
-  const filteredNavigation = navigation.filter(item => 
-    item.roles.includes(user?.role)
-  )
+  const navigation = getNavigation()
 
   return (
     <div className="w-64 bg-gray-900 text-white flex flex-col">
@@ -41,7 +61,7 @@ const Sidebar = () => {
       </div>
       
       <nav className="flex-1 mt-6">
-        {filteredNavigation.map((item) => (
+        {navigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
@@ -60,8 +80,18 @@ const Sidebar = () => {
       <div className="p-6 border-t border-gray-800">
         <div className="text-sm text-gray-400">
           <p>Logged in as</p>
-          <p className="text-white font-medium">{user?.full_name || user?.username}</p>
-          <p className="text-xs mt-1 capitalize">{user?.role?.replace('_', ' ')}</p>
+          <p className="text-white font-medium">{user?.name || user?.full_name || 'User'}</p>
+          <p className="text-xs mt-1 capitalize">
+            {user?.email === 'admin@gmail.com' ? 'Super Admin' : 
+             isHotelAdmin ? 'Hotel Admin' : 
+             isPropertyAdmin ? 'Property Admin' : 'Staff'}
+          </p>
+          {user?.hotel_name && (
+            <p className="text-xs mt-1 text-gray-400">Hotel: {user.hotel_name}</p>
+          )}
+          {user?.property_name && (
+            <p className="text-xs text-gray-400">Property: {user.property_name}</p>
+          )}
         </div>
       </div>
     </div>
