@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Union
 from app.database import get_db
 from app import models, schemas, auth
 from app.config import settings
 import uuid
+from datetime import datetime
 
 router = APIRouter(prefix="/api/staff", tags=["Staff"])
 
@@ -12,20 +13,36 @@ router = APIRouter(prefix="/api/staff", tags=["Staff"])
 async def create_staff(
     staff_data: schemas.StaffCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_hotel_admin)
 ):
     # Check if email already exists
     existing = db.query(models.Staff).filter(models.Staff.email == staff_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
     
-    # Check if hotel exists and user has access
+    # Handle super admin (dictionary) vs regular staff (object)
+    is_super_admin = False
+    current_hotel_id = None
+    
+    if isinstance(current_user, dict):
+        # This is super admin
+        is_super_admin = True
+        if not staff_data.hotel_id:
+            raise HTTPException(status_code=400, detail="Hotel ID is required")
+        current_hotel_id = staff_data.hotel_id
+    else:
+        # Regular staff
+        current_hotel_id = current_user.hotel_id
+        if not staff_data.hotel_id:
+            staff_data.hotel_id = current_hotel_id
+    
+    # Check if hotel exists
     hotel = db.query(models.Hotel).filter(models.Hotel.id == staff_data.hotel_id).first()
     if not hotel:
         raise HTTPException(status_code=404, detail="Hotel not found")
     
-    # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != staff_data.hotel_id:
+    # Check access for non-super admin
+    if not is_super_admin and current_hotel_id != staff_data.hotel_id:
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
     
     # If property_id is provided, check if it exists and belongs to the hotel
@@ -54,7 +71,10 @@ async def create_staff(
     employee_code = staff_data.employee_code
     if not employee_code:
         hotel_prefix = hotel.hotel_code[:3].upper()
-        staff_count = db.query(models.Staff).filter(models.Staff.hotel_id == staff_data.hotel_id).count()
+        staff_count = db.query(models.Staff).filter(
+            models.Staff.hotel_id == staff_data.hotel_id,
+            models.Staff.is_hotel_admin == False
+        ).count()
         employee_code = f"{hotel_prefix}{staff_count + 1:04d}"
     
     db_staff = models.Staff(
@@ -66,8 +86,8 @@ async def create_staff(
         email=staff_data.email,
         phone=staff_data.phone,
         password_hash=password_hash,
-        is_hotel_admin=staff_data.is_hotel_admin,
-        is_property_admin=staff_data.is_property_admin,
+        is_hotel_admin=staff_data.is_hotel_admin or False,
+        is_property_admin=staff_data.is_property_admin or False,
         status=staff_data.status
     )
     
@@ -82,7 +102,7 @@ async def create_staff(
 async def create_hotel_admin(
     staff_data: schemas.StaffCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_super_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_super_admin)
 ):
     """Super admin can create hotel admins"""
     # Force is_hotel_admin to True
@@ -90,13 +110,13 @@ async def create_hotel_admin(
     staff_data.is_property_admin = False
     staff_data.property_id = None
     
-    return await create_staff(staff_data, db, current_staff)
+    return await create_staff(staff_data, db, current_user)
 
 @router.post("/property-admin", response_model=schemas.StaffResponse)
 async def create_property_admin(
     staff_data: schemas.StaffCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_hotel_admin)
 ):
     """Hotel admin can create property admins for their properties"""
     # Force is_property_admin to True
@@ -107,7 +127,7 @@ async def create_property_admin(
     if not staff_data.property_id:
         raise HTTPException(status_code=400, detail="Property ID is required for property admin")
     
-    return await create_staff(staff_data, db, current_staff)
+    return await create_staff(staff_data, db, current_user)
 
 @router.get("/", response_model=List[schemas.StaffResponse])
 async def get_staff_list(
@@ -117,17 +137,17 @@ async def get_staff_list(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_active_user)
 ):
     query = db.query(models.Staff)
     
-    # Super admin
-    if current_staff.email == 'admin@gmail.com':
+    # Super admin sees all staff
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         if hotel_id:
             query = query.filter(models.Staff.hotel_id == hotel_id)
     else:
         # Hotel admin - see staff of their hotel only
-        query = query.filter(models.Staff.hotel_id == current_staff.hotel_id)
+        query = query.filter(models.Staff.hotel_id == current_user.hotel_id)
     
     if property_id:
         query = query.filter(models.Staff.property_id == property_id)
@@ -148,15 +168,16 @@ async def get_staff_list(
 async def get_staff(
     staff_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_active_user)
 ):
     staff = db.query(models.Staff).filter(models.Staff.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != staff.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return await get_staff_response(staff, db)
 
@@ -165,15 +186,16 @@ async def update_staff(
     staff_id: uuid.UUID,
     staff_update: schemas.StaffUpdate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_hotel_admin)
 ):
     staff = db.query(models.Staff).filter(models.Staff.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != staff.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     update_data = staff_update.model_dump(exclude_unset=True)
     
@@ -182,25 +204,22 @@ async def update_staff(
         update_data["password_hash"] = auth.get_password_hash(update_data.pop("password"))
     
     # Handle property assignment
-    if "property_id" in update_data:
-        if update_data["property_id"]:
-            # Check if property belongs to the hotel
-            property_obj = db.query(models.Property).filter(
-                models.Property.id == update_data["property_id"],
-                models.Property.hotel_id == staff.hotel_id
-            ).first()
-            if not property_obj:
-                raise HTTPException(status_code=404, detail="Property not found in this hotel")
+    if "property_id" in update_data and update_data["property_id"]:
+        property_obj = db.query(models.Property).filter(
+            models.Property.id == update_data["property_id"],
+            models.Property.hotel_id == staff.hotel_id
+        ).first()
+        if not property_obj:
+            raise HTTPException(status_code=404, detail="Property not found in this hotel")
     
     # Handle role assignment
-    if "role_id" in update_data:
-        if update_data["role_id"]:
-            role = db.query(models.Role).filter(
-                models.Role.id == update_data["role_id"],
-                models.Role.hotel_id == staff.hotel_id
-            ).first()
-            if not role:
-                raise HTTPException(status_code=404, detail="Role not found in this hotel")
+    if "role_id" in update_data and update_data["role_id"]:
+        role = db.query(models.Role).filter(
+            models.Role.id == update_data["role_id"],
+            models.Role.hotel_id == staff.hotel_id
+        ).first()
+        if not role:
+            raise HTTPException(status_code=404, detail="Role not found in this hotel")
     
     for key, value in update_data.items():
         setattr(staff, key, value)
@@ -214,19 +233,20 @@ async def update_staff(
 async def delete_staff(
     staff_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_hotel_admin)
 ):
     staff = db.query(models.Staff).filter(models.Staff.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     # Cannot delete self
-    if staff.id == current_staff.id:
+    if not isinstance(current_user, dict) and staff.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != staff.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     db.delete(staff)
     db.commit()
@@ -236,15 +256,16 @@ async def delete_staff(
 async def reset_staff_password(
     staff_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user: Union[models.Staff, dict] = Depends(auth.get_current_hotel_admin)
 ):
     staff = db.query(models.Staff).filter(models.Staff.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.hotel_id != staff.hotel_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     # Reset to default password
     staff.password_hash = auth.get_password_hash(settings.DEFAULT_STAFF_PASSWORD)
@@ -266,7 +287,10 @@ async def get_staff_response(staff: models.Staff, db: Session):
         role_name = role.role_name if role else None
     
     # Get hotel name
-    hotel = db.query(models.Hotel).filter(models.Hotel.id == staff.hotel_id).first()
+    hotel_name = None
+    if staff.hotel_id:
+        hotel = db.query(models.Hotel).filter(models.Hotel.id == staff.hotel_id).first()
+        hotel_name = hotel.hotel_name if hotel else None
     
     return schemas.StaffResponse(
         id=staff.id,
@@ -284,5 +308,5 @@ async def get_staff_response(staff: models.Staff, db: Session):
         updated_at=staff.updated_at,
         property_name=property_name,
         role_name=role_name,
-        hotel_name=hotel.hotel_name if hotel else None
+        hotel_name=hotel_name
     )

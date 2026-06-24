@@ -20,7 +20,10 @@ const Staff = () => {
   const fetchStaff = async () => {
     try {
       const params = {}
-      if (isPropertyAdmin && user?.property_id) {
+      if (isSuperAdmin) {
+        // Super admin sees all staff (read-only)
+        params.hotel_id = null
+      } else if (isPropertyAdmin && user?.property_id) {
         params.property_id = user.property_id
       } else if (isHotelAdmin && user?.hotel_id) {
         params.hotel_id = user.hotel_id
@@ -68,7 +71,9 @@ const Staff = () => {
     fetchStaff()
   }
 
-  const canAddStaff = isSuperAdmin || isHotelAdmin || isPropertyAdmin
+  // Only Hotel Admin and Property Admin can add staff
+  const canAddStaff = isHotelAdmin || isPropertyAdmin
+  const canEditStaff = isHotelAdmin || isPropertyAdmin
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>
@@ -80,7 +85,9 @@ const Staff = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
           <p className="text-gray-600 mt-1">
-            {isPropertyAdmin ? 'Manage staff for your property' : 'Manage hotel staff'}
+            {isSuperAdmin ? 'View all staff (read-only)' : 
+             isPropertyAdmin ? 'Manage staff for your property' : 
+             'Manage hotel staff'}
           </p>
         </div>
         {canAddStaff && (
@@ -96,10 +103,10 @@ const Staff = () => {
 
       <StaffList
         staff={staff}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onResetPassword={handleResetPassword}
-        canEdit={canAddStaff}
+        onEdit={canEditStaff ? handleEdit : null}
+        onDelete={canEditStaff ? handleDelete : null}
+        onResetPassword={canEditStaff ? handleResetPassword : null}
+        canEdit={canEditStaff}
       />
 
       {showForm && (

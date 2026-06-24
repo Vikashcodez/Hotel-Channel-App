@@ -68,8 +68,9 @@ const Properties = () => {
     fetchData()
   }
 
-  const canAddProperty = isSuperAdmin || isHotelAdmin
-  const canEditProperty = isSuperAdmin || isHotelAdmin
+  // Super Admin can only view, Hotel Admin can add/edit/delete
+  const canAddProperty = isHotelAdmin
+  const canEditProperty = isHotelAdmin
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>
@@ -81,7 +82,9 @@ const Properties = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
           <p className="text-gray-600 mt-1">
-            {isPropertyAdmin ? 'View your assigned property' : 'Manage your property portfolio'}
+            {isSuperAdmin ? 'View all properties (read-only)' : 
+             isHotelAdmin ? 'Manage your hotel properties' : 
+             isPropertyAdmin ? 'View your property' : 'View properties'}
           </p>
         </div>
         {canAddProperty && (
@@ -113,8 +116,8 @@ const Properties = () => {
 
       <PropertyList
         properties={properties}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={canEditProperty ? handleEdit : null}
+        onDelete={canEditProperty ? handleDelete : null}
         canEdit={canEditProperty}
       />
 

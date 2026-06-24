@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     SUPER_ADMIN_NAME: str = "System Super Admin"
     
     # Default Staff Password
-    DEFAULT_STAFF_PASSWORD: str
+    DEFAULT_STAFF_PASSWORD: str = "welcome"
     
     # Application Configuration
     APP_NAME: str

@@ -57,6 +57,9 @@ const Roles = () => {
     fetchRoles()
   }
 
+  // Only Hotel Admin can manage roles, Super Admin can only view
+  const canManageRoles = isHotelAdmin
+
   if (!isSuperAdmin && !isHotelAdmin) {
     return (
       <div className="text-center py-12">
@@ -74,21 +77,25 @@ const Roles = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Roles</h1>
-          <p className="text-gray-600 mt-1">Manage staff roles and permissions</p>
+          <p className="text-gray-600 mt-1">
+            {isSuperAdmin ? 'View all roles (read-only)' : 'Manage staff roles and permissions'}
+          </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span>Add Role</span>
-        </button>
+        {canManageRoles && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <PlusIcon className="h-5 w-5" />
+            <span>Add Role</span>
+          </button>
+        )}
       </div>
 
       <RoleList
         roles={roles}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={canManageRoles ? handleEdit : null}
+        onDelete={canManageRoles ? handleDelete : null}
       />
 
       {showForm && (
