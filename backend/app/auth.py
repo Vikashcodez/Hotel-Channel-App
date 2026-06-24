@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union
-from types import SimpleNamespace
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -79,9 +78,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             "email": settings.SUPER_ADMIN_EMAIL,
             "name": settings.SUPER_ADMIN_NAME,
             "is_super_admin": True,
-            "is_hotel_admin": False,
+            "is_tenant_admin": False,
             "is_property_admin": False,
-            "hotel_id": None,
+            "tenant_id": None,
             "property_id": None,
             "status": "ACTIVE"
         }
@@ -103,26 +102,6 @@ async def get_current_active_user(current_user = Depends(get_current_user)):
             raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-async def get_current_active_staff(current_user = Depends(get_current_active_user)):
-    if isinstance(current_user, dict):
-        return SimpleNamespace(
-            id=current_user.get("id"),
-            email=current_user.get("email"),
-            name=current_user.get("name"),
-            phone=None,
-            employee_code="SUPER_ADMIN",
-            is_hotel_admin=False,
-            is_property_admin=False,
-            status="ACTIVE",
-            hotel_id=None,
-            property_id=None,
-            role_id=None,
-            password_hash=None,
-            created_at=None,
-            updated_at=None,
-        )
-    return current_user
-
 async def get_current_super_admin(current_user = Depends(get_current_active_user)):
     if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         return current_user
@@ -131,16 +110,16 @@ async def get_current_super_admin(current_user = Depends(get_current_active_user
         detail="Super admin privileges required"
     )
 
-async def get_current_hotel_admin(current_user = Depends(get_current_active_user)):
+async def get_current_tenant_admin(current_user = Depends(get_current_active_user)):
     if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         return current_user
     
-    if not isinstance(current_user, dict) and current_user.is_hotel_admin:
+    if not isinstance(current_user, dict) and current_user.is_tenant_admin:
         return current_user
         
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Hotel admin privileges required"
+        detail="Tenant admin privileges required"
     )
 
 async def get_current_property_admin(current_user = Depends(get_current_active_user)):
@@ -148,7 +127,7 @@ async def get_current_property_admin(current_user = Depends(get_current_active_u
         return current_user
     
     if not isinstance(current_user, dict):
-        if current_user.is_property_admin or current_user.is_hotel_admin:
+        if current_user.is_property_admin or current_user.is_tenant_admin:
             return current_user
         
     raise HTTPException(

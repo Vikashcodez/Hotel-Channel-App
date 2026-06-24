@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.database import get_db
 from app import auth, schemas, models
 from app.config import settings
@@ -36,9 +35,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             "email": user["email"],
             "name": user["name"],
             "is_super_admin": True,
-            "is_hotel_admin": False,
+            "is_tenant_admin": False,
             "is_property_admin": False,
-            "hotel_id": None,
+            "tenant_id": None,
             "property_id": None
         }
     
@@ -51,13 +50,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "staff_id": user.id,
+        "staff_id": str(user.id),
         "email": user.email,
         "name": user.name,
         "is_super_admin": False,
-        "is_hotel_admin": user.is_hotel_admin,
+        "is_tenant_admin": user.is_tenant_admin,
         "is_property_admin": user.is_property_admin,
-        "hotel_id": user.hotel_id,
+        "tenant_id": user.tenant_id,
         "property_id": user.property_id
     }
 
@@ -67,7 +66,7 @@ async def change_password(
     current_user = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    # Super admin cannot change password via API (would need to update .env)
+    # Super admin cannot change password via API
     if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -94,22 +93,22 @@ async def get_current_user_info(
     # Handle super admin
     if isinstance(current_user, dict) and current_user.get("is_super_admin"):
         return schemas.StaffResponse(
-            id=uuid.uuid4(),  # Temporary UUID for response
+            id=uuid.uuid4(),
             name=current_user["name"],
             email=current_user["email"],
             phone=None,
             employee_code="SUPER_ADMIN",
-            is_hotel_admin=False,
+            is_tenant_admin=False,
             is_property_admin=False,
             status="ACTIVE",
-            hotel_id=None,
+            tenant_id=None,
             property_id=None,
             role_id=None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
             property_name=None,
             role_name=None,
-            hotel_name=None
+            tenant_name=None
         )
     
     # Handle regular staff
@@ -123,10 +122,10 @@ async def get_current_user_info(
         role = db.query(models.Role).filter(models.Role.id == current_user.role_id).first()
         role_name = role.role_name if role else None
     
-    hotel_name = None
-    if current_user.hotel_id:
-        hotel = db.query(models.Hotel).filter(models.Hotel.id == current_user.hotel_id).first()
-        hotel_name = hotel.hotel_name if hotel else None
+    tenant_name = None
+    if current_user.tenant_id:
+        tenant = db.query(models.Tenant).filter(models.Tenant.id == current_user.tenant_id).first()
+        tenant_name = tenant.tenant_name if tenant else None
     
     return schemas.StaffResponse(
         id=current_user.id,
@@ -134,15 +133,15 @@ async def get_current_user_info(
         email=current_user.email,
         phone=current_user.phone,
         employee_code=current_user.employee_code,
-        is_hotel_admin=current_user.is_hotel_admin,
+        is_tenant_admin=current_user.is_tenant_admin,
         is_property_admin=current_user.is_property_admin,
         status=current_user.status,
-        hotel_id=current_user.hotel_id,
+        tenant_id=current_user.tenant_id,
         property_id=current_user.property_id,
         role_id=current_user.role_id,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         property_name=property_name,
         role_name=role_name,
-        hotel_name=hotel_name
+        tenant_name=tenant_name
     )

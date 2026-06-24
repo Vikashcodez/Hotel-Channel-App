@@ -3,27 +3,29 @@ from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 
-# Hotel Schemas
-class HotelBase(BaseModel):
-    hotel_name: str
-    hotel_code: str
+# =========================
+# TENANT SCHEMAS
+# =========================
+class TenantBase(BaseModel):
+    tenant_name: str
+    tenant_code: str
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     logo: Optional[str] = None
     status: Optional[str] = 'ACTIVE'
 
-class HotelCreate(HotelBase):
+class TenantCreate(TenantBase):
     pass
 
-class HotelUpdate(BaseModel):
-    hotel_name: Optional[str] = None
-    hotel_code: Optional[str] = None
+class TenantUpdate(BaseModel):
+    tenant_name: Optional[str] = None
+    tenant_code: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     logo: Optional[str] = None
     status: Optional[str] = None
 
-class HotelResponse(HotelBase):
+class TenantResponse(TenantBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
@@ -31,7 +33,9 @@ class HotelResponse(HotelBase):
     class Config:
         from_attributes = True
 
-# Property Schemas
+# =========================
+# PROPERTY SCHEMAS
+# =========================
 class PropertyBase(BaseModel):
     property_name: str
     property_code: str
@@ -48,7 +52,7 @@ class PropertyBase(BaseModel):
     status: Optional[str] = 'ACTIVE'
 
 class PropertyCreate(PropertyBase):
-    hotel_id: UUID
+    tenant_id: UUID
 
 class PropertyUpdate(BaseModel):
     property_name: Optional[str] = None
@@ -67,7 +71,7 @@ class PropertyUpdate(BaseModel):
 
 class PropertyResponse(PropertyBase):
     id: UUID
-    hotel_id: UUID
+    tenant_id: UUID
     created_at: datetime
     updated_at: datetime
     staff_count: Optional[int] = 0
@@ -75,14 +79,16 @@ class PropertyResponse(PropertyBase):
     class Config:
         from_attributes = True
 
-# Role Schemas
+# =========================
+# ROLE SCHEMAS
+# =========================
 class RoleBase(BaseModel):
     role_name: str
     description: Optional[str] = None
     status: Optional[str] = 'ACTIVE'
 
 class RoleCreate(RoleBase):
-    hotel_id: UUID
+    tenant_id: UUID
 
 class RoleUpdate(BaseModel):
     role_name: Optional[str] = None
@@ -91,25 +97,27 @@ class RoleUpdate(BaseModel):
 
 class RoleResponse(RoleBase):
     id: UUID
-    hotel_id: UUID
+    tenant_id: UUID
     created_at: datetime
     updated_at: datetime
     
     class Config:
         from_attributes = True
 
-# Staff Schemas
+# =========================
+# STAFF SCHEMAS
+# =========================
 class StaffBase(BaseModel):
     name: str
     email: EmailStr
     phone: Optional[str] = None
     employee_code: Optional[str] = None
-    is_hotel_admin: Optional[bool] = False
+    is_tenant_admin: Optional[bool] = False
     is_property_admin: Optional[bool] = False
     status: Optional[str] = 'ACTIVE'
 
 class StaffCreate(StaffBase):
-    hotel_id: UUID
+    tenant_id: UUID
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
     password: Optional[str] = None
@@ -119,39 +127,41 @@ class StaffUpdate(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     employee_code: Optional[str] = None
-    hotel_id: Optional[UUID] = None
+    tenant_id: Optional[UUID] = None
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
-    is_hotel_admin: Optional[bool] = None
+    is_tenant_admin: Optional[bool] = None
     is_property_admin: Optional[bool] = None
     status: Optional[str] = None
     password: Optional[str] = None
 
 class StaffResponse(StaffBase):
     id: UUID
-    hotel_id: Optional[UUID] = None
+    tenant_id: Optional[UUID] = None
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
     property_name: Optional[str] = None
     role_name: Optional[str] = None
-    hotel_name: Optional[str] = None
+    tenant_name: Optional[str] = None
     
     class Config:
         from_attributes = True
 
-# Auth Schemas
+# =========================
+# AUTH SCHEMAS
+# =========================
 class Token(BaseModel):
     access_token: str
     token_type: str
-    staff_id: Optional[str] = None  # Can be None for super admin
+    staff_id: Optional[str] = None
     email: str
     name: str
     is_super_admin: bool
-    is_hotel_admin: bool
+    is_tenant_admin: bool
     is_property_admin: bool
-    hotel_id: Optional[UUID] = None
+    tenant_id: Optional[UUID] = None
     property_id: Optional[UUID] = None
 
 class LoginRequest(BaseModel):

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth as auth_router, hotels, properties, roles, staff
+from app.routers import auth as auth_router, tenants, properties, roles, staff
 from app.config import settings
 import logging
 
@@ -24,7 +24,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router.router)
-app.include_router(hotels.router)
+app.include_router(tenants.router)
 app.include_router(properties.router)
 app.include_router(roles.router)
 app.include_router(staff.router)

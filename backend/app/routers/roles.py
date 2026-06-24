@@ -11,24 +11,25 @@ router = APIRouter(prefix="/api/roles", tags=["Roles"])
 async def create_role(
     role_data: schemas.RoleCreate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_tenant_admin)
 ):
-    # Check if hotel exists and user has access
-    hotel = db.query(models.Hotel).filter(models.Hotel.id == role_data.hotel_id).first()
-    if not hotel:
-        raise HTTPException(status_code=404, detail="Hotel not found")
+    # Check if tenant exists
+    tenant = db.query(models.Tenant).filter(models.Tenant.id == role_data.tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Check if hotel admin has access to this hotel
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != role_data.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    # Check if tenant admin has access to this tenant (for non-super admin)
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.tenant_id != role_data.tenant_id:
+            raise HTTPException(status_code=403, detail="Access denied to this tenant")
     
-    # Check if role name already exists in the hotel
+    # Check if role name already exists in the tenant
     existing = db.query(models.Role).filter(
-        models.Role.hotel_id == role_data.hotel_id,
+        models.Role.tenant_id == role_data.tenant_id,
         models.Role.role_name == role_data.role_name
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Role name already exists in this hotel")
+        raise HTTPException(status_code=400, detail="Role name already exists in this tenant")
     
     db_role = models.Role(**role_data.model_dump())
     db.add(db_role)
@@ -38,21 +39,21 @@ async def create_role(
 
 @router.get("/", response_model=List[schemas.RoleResponse])
 async def get_roles(
-    hotel_id: uuid.UUID = None,
+    tenant_id: uuid.UUID = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     query = db.query(models.Role)
     
     # Super admin
-    if current_staff.email == 'admin@gmail.com':
-        if hotel_id:
-            query = query.filter(models.Role.hotel_id == hotel_id)
+    if isinstance(current_user, dict) and current_user.get("is_super_admin"):
+        if tenant_id:
+            query = query.filter(models.Role.tenant_id == tenant_id)
     else:
-        # Hotel admin and others - see roles of their hotel
-        query = query.filter(models.Role.hotel_id == current_staff.hotel_id)
+        # Tenant admin and others - see roles of their tenant
+        query = query.filter(models.Role.tenant_id == current_user.tenant_id)
     
     roles = query.offset(skip).limit(limit).all()
     return roles
@@ -61,15 +62,16 @@ async def get_roles(
 async def get_role(
     role_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_active_staff)
+    current_user = Depends(auth.get_current_active_user)
 ):
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != role.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.tenant_id != role.tenant_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return role
 
@@ -78,15 +80,16 @@ async def update_role(
     role_id: uuid.UUID,
     role_update: schemas.RoleUpdate,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_tenant_admin)
 ):
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != role.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.tenant_id != role.tenant_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     for key, value in role_update.model_dump(exclude_unset=True).items():
         setattr(role, key, value)
@@ -99,7 +102,7 @@ async def update_role(
 async def delete_role(
     role_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_staff: models.Staff = Depends(auth.get_current_hotel_admin)
+    current_user = Depends(auth.get_current_tenant_admin)
 ):
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
     if not role:
@@ -111,8 +114,9 @@ async def delete_role(
         raise HTTPException(status_code=400, detail=f"Cannot delete role as it is assigned to {staff_count} staff members")
     
     # Check access
-    if current_staff.email != 'admin@gmail.com' and current_staff.hotel_id != role.hotel_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if not (isinstance(current_user, dict) and current_user.get("is_super_admin")):
+        if current_user.tenant_id != role.tenant_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     db.delete(role)
     db.commit()
