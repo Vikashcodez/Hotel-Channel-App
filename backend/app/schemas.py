@@ -15,7 +15,7 @@ class TenantBase(BaseModel):
     status: Optional[str] = 'ACTIVE'
 
 class TenantCreate(TenantBase):
-    pass
+    password: Optional[str] = Field(None, min_length=6, description="Password for tenant admin. If not provided, default 'welcome' will be used")
 
 class TenantUpdate(BaseModel):
     tenant_name: Optional[str] = None
@@ -120,7 +120,7 @@ class StaffCreate(StaffBase):
     tenant_id: UUID
     property_id: Optional[UUID] = None
     role_id: Optional[UUID] = None
-    password: Optional[str] = None
+    password: Optional[str] = Field(None, min_length=6, description="Password for staff. If not provided, default 'welcome' will be used")
 
 class StaffUpdate(BaseModel):
     name: Optional[str] = None
@@ -133,7 +133,7 @@ class StaffUpdate(BaseModel):
     is_tenant_admin: Optional[bool] = None
     is_property_admin: Optional[bool] = None
     status: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[str] = Field(None, min_length=6, description="New password for staff")
 
 class StaffResponse(StaffBase):
     id: UUID
@@ -170,4 +170,4 @@ class LoginRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
-    new_password: str
+    new_password: str = Field(..., min_length=6, description="New password must be at least 6 characters")
