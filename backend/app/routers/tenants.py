@@ -7,7 +7,6 @@ from app.config import settings
 import uuid
 import shutil
 import os
-from datetime import datetime
 
 router = APIRouter(prefix="/api/tenants", tags=["Tenants"])
 
@@ -19,7 +18,7 @@ async def create_tenant(
     phone: Optional[str] = Form(None),
     password: Optional[str] = Form(None),
     status: Optional[str] = Form("ACTIVE"),
-    logo: Optional[UploadFile] = File(None),
+    logo: UploadFile = File(None),  # This will show as file upload button
     db: Session = Depends(get_db),
     current_user = Depends(auth.get_current_super_admin)
 ):
@@ -28,19 +27,16 @@ async def create_tenant(
     if existing:
         raise HTTPException(status_code=400, detail="Tenant code already exists")
     
-    # Handle logo upload if provided
+    # Save logo if uploaded
     logo_path = None
     if logo and logo.filename:
-        # Create uploads directory if it doesn't exist
         upload_dir = "uploads/tenant_logos"
         os.makedirs(upload_dir, exist_ok=True)
         
-        # Generate unique filename
         file_extension = logo.filename.split(".")[-1] if "." in logo.filename else "png"
         filename = f"{uuid.uuid4()}.{file_extension}"
         file_path = os.path.join(upload_dir, filename)
         
-        # Save file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(logo.file, buffer)
         
@@ -63,14 +59,11 @@ async def create_tenant(
     staff_password = password if password else settings.DEFAULT_STAFF_PASSWORD
     password_hash = auth.get_password_hash(staff_password)
     
-    # Generate employee code
-    tenant_prefix = tenant_code[:3].upper()
-    
     staff = models.Staff(
         tenant_id=db_tenant.id,
         property_id=None,
         role_id=None,
-        employee_code=f"{tenant_prefix}ADMIN001",
+        employee_code=f"{tenant_code[:3].upper()}ADMIN001",
         name=tenant_name,
         email=email,
         phone=phone,
@@ -85,6 +78,9 @@ async def create_tenant(
     db.refresh(staff)
     
     return db_tenant
+
+# Rest of the endpoints remain the same...
+    return tenant
 
 @router.get("/", response_model=List[schemas.TenantResponse])
 async def get_tenants(
@@ -158,40 +154,6 @@ async def update_tenant(
         db.commit()
     
     return db_tenant
-
-@router.post("/{tenant_id}/logo")
-async def upload_tenant_logo(
-    tenant_id: uuid.UUID,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user = Depends(auth.get_current_super_admin)
-):
-    tenant = db.query(models.Tenant).filter(models.Tenant.id == tenant_id).first()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-    
-    # Delete old logo if exists
-    if tenant.logo:
-        old_path = tenant.logo.lstrip('/')
-        if os.path.exists(old_path):
-            os.remove(old_path)
-    
-    # Save new logo
-    upload_dir = "uploads/tenant_logos"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else "png"
-    filename = f"{tenant_id}.{file_extension}"
-    file_path = os.path.join(upload_dir, filename)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    tenant.logo = f"/uploads/tenant_logos/{filename}"
-    db.commit()
-    db.refresh(tenant)
-    
-    return {"message": "Logo uploaded successfully", "logo_url": tenant.logo}
 
 @router.delete("/{tenant_id}/logo")
 async def delete_tenant_logo(
