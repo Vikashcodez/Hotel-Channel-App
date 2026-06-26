@@ -150,6 +150,133 @@ class StaffResponse(StaffBase):
         from_attributes = True
 
 # =========================
+# BUILDING SCHEMAS
+# =========================
+class BuildingBase(BaseModel):
+    building_name: str
+    building_code: str
+    total_floors: Optional[int] = 0
+    status: Optional[str] = 'ACTIVE'
+
+class BuildingCreate(BuildingBase):
+    tenant_id: UUID
+    property_id: UUID
+
+class BuildingUpdate(BaseModel):
+    building_name: Optional[str] = None
+    building_code: Optional[str] = None
+    total_floors: Optional[int] = None
+    property_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+class BuildingResponse(BuildingBase):
+    id: UUID
+    tenant_id: UUID
+    property_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# =========================
+# FLOOR SCHEMAS
+# =========================
+class FloorBase(BaseModel):
+    floor_name: str
+    floor_code: str
+    status: Optional[str] = 'ACTIVE'
+
+class FloorCreate(FloorBase):
+    tenant_id: UUID
+    property_id: UUID
+    building_id: UUID
+
+class FloorUpdate(BaseModel):
+    floor_name: Optional[str] = None
+    floor_code: Optional[str] = None
+    property_id: Optional[UUID] = None
+    building_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+class FloorResponse(FloorBase):
+    id: UUID
+    tenant_id: UUID
+    property_id: UUID
+    building_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# =========================
+# ROOM TYPE SCHEMAS
+# =========================
+class RoomTypeBase(BaseModel):
+    room_type_name: str
+    room_type_code: str
+    description: Optional[str] = None
+    status: Optional[str] = 'ACTIVE'
+
+class RoomTypeCreate(RoomTypeBase):
+    tenant_id: UUID
+    property_id: UUID
+
+class RoomTypeUpdate(BaseModel):
+    room_type_name: Optional[str] = None
+    room_type_code: Optional[str] = None
+    description: Optional[str] = None
+    property_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+class RoomTypeResponse(RoomTypeBase):
+    id: UUID
+    tenant_id: UUID
+    property_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# =========================
+# ROOM SCHEMAS
+# =========================
+class RoomBase(BaseModel):
+    room_name: str
+    room_code: str
+    status: Optional[str] = 'ACTIVE'
+
+class RoomCreate(RoomBase):
+    tenant_id: UUID
+    property_id: UUID
+    floor_id: UUID
+    room_type_id: UUID
+
+class RoomUpdate(BaseModel):
+    room_name: Optional[str] = None
+    room_code: Optional[str] = None
+    property_id: Optional[UUID] = None
+    floor_id: Optional[UUID] = None
+    room_type_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+class RoomResponse(RoomBase):
+    id: UUID
+    tenant_id: UUID
+    property_id: UUID
+    floor_id: UUID
+    room_type_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    floor_name: Optional[str] = None
+    room_type_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+# =========================
 # AUTH SCHEMAS
 # =========================
 class Token(BaseModel):

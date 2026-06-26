@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app.database import engine, Base
 from app.routers import auth as auth_router, tenants, properties, roles, staff
+from app.routers import buildings, floors, room_types, rooms
 from app.config import settings
 import logging
 
@@ -34,12 +35,14 @@ app.include_router(tenants.router)
 app.include_router(properties.router)
 app.include_router(roles.router)
 app.include_router(staff.router)
+app.include_router(buildings.router)
+app.include_router(floors.router)
+app.include_router(room_types.router)
+app.include_router(rooms.router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Startup event - no super admin creation needed"""
     logger.info(f"PMS System starting with super admin from .env: {settings.SUPER_ADMIN_EMAIL}")
-    logger.info("Super admin is authenticated directly from .env file, not stored in database")
 
 @app.get("/")
 async def root():

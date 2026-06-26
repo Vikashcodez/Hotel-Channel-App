@@ -22,6 +22,7 @@ class Tenant(Base):
     properties = relationship("Property", back_populates="tenant", cascade="all, delete-orphan")
     staff = relationship("Staff", back_populates="tenant", cascade="all, delete-orphan")
     roles = relationship("Role", back_populates="tenant", cascade="all, delete-orphan")
+    
 
 class Property(Base):
     __tablename__ = "properties"
@@ -47,6 +48,10 @@ class Property(Base):
     # Relationships
     tenant = relationship("Tenant", back_populates="properties")
     staff = relationship("Staff", back_populates="property")
+    buildings = relationship("Building", back_populates="property", cascade="all, delete-orphan")
+    floors = relationship("Floor", back_populates="property", cascade="all, delete-orphan")
+    room_types = relationship("RoomType", back_populates="property", cascade="all, delete-orphan")
+    rooms = relationship("Room", back_populates="property", cascade="all, delete-orphan")
 
 class Role(Base):
     __tablename__ = "roles"
@@ -95,6 +100,9 @@ class Building(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    property = relationship("Property", back_populates="buildings")
+    floors = relationship("Floor", back_populates="building", cascade="all, delete-orphan")
+
 class Floor(Base):
     __tablename__ = "floors"
     
@@ -107,6 +115,10 @@ class Floor(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    property = relationship("Property", back_populates="floors")
+    building = relationship("Building", back_populates="floors")
+    rooms = relationship("Room", back_populates="floor", cascade="all, delete-orphan")
 
 class RoomType(Base):
     __tablename__ = "room_types"
@@ -121,6 +133,10 @@ class RoomType(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    property = relationship("Property", back_populates="room_types")
+    rooms = relationship("Room", back_populates="room_type", cascade="all, delete-orphan")
+
+
 class Room(Base):
     __tablename__ = "rooms"
     
@@ -134,6 +150,10 @@ class Room(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    property = relationship("Property", back_populates="rooms")
+    floor = relationship("Floor", back_populates="rooms")
+    room_type = relationship("RoomType", back_populates="rooms")
 
     # Relationships
     tenant = relationship("Tenant", back_populates="staff")
