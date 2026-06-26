@@ -80,8 +80,59 @@ class Staff(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Building(Base):
+    __tablename__ = "buildings"
     
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    building_name = Column(String(255), nullable=False)
+    building_code = Column(String(50), nullable=False)
+    total_floors = Column(Integer, default=0)
+    status = Column(String(20), default='ACTIVE')
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class Floor(Base):
+    __tablename__ = "floors"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    building_id = Column(UUID(as_uuid=True), ForeignKey("buildings.id", ondelete="CASCADE"), nullable=False)
+    floor_name = Column(String(255), nullable=False)
+    floor_code = Column(String(50), nullable=False)
+    status = Column(String(20), default='ACTIVE')
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class RoomType(Base):
+    __tablename__ = "room_types"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    room_type_name = Column(String(255), nullable=False)
+    room_type_code = Column(String(50), nullable=False)
+    description = Column(Text)
+    status = Column(String(20), default='ACTIVE')
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class Room(Base):
+    __tablename__ = "rooms"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    floor_id = Column(UUID(as_uuid=True), ForeignKey("floors.id", ondelete="CASCADE"), nullable=False)
+    room_type_id = Column(UUID(as_uuid=True), ForeignKey("room_types.id", ondelete="CASCADE"), nullable=False)
+    room_name = Column(String(255), nullable=False)
+    room_code = Column(String(50), nullable=False)
+    status = Column(String(20), default='ACTIVE')
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     # Relationships
     tenant = relationship("Tenant", back_populates="staff")
     property = relationship("Property", back_populates="staff")
     role = relationship("Role", back_populates="staff")
+    
