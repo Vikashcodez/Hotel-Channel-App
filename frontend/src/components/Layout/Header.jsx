@@ -23,7 +23,7 @@ const Header = () => {
         <div className="flex flex-col">
           <p className="text-[10px] text-stone-500 uppercase tracking-[0.2em] mb-1">Dashboard</p>
           <h2 className="font-serif text-2xl text-stone-900 tracking-tight">
-            Welcome back, {user?.full_name || user?.username || 'Guest'}
+            Welcome back, {user?.name || user?.username || 'Guest'}
           </h2>
         </div>
 
