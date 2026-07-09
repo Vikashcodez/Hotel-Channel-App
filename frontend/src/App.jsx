@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/Layout/ProtectedRoute'
 import Layout from './components/Layout/Layout'
 import Login from './pages/Login'
@@ -15,24 +15,31 @@ import Staff from './pages/Staff'
 import Roles from './pages/Roles'
 import Profile from './pages/Profile'
 import Unauthorized from './pages/Unauthorized'
-import { useAuth } from './contexts/AuthContext'
 
 function AppRoutes() {
-  const { userRole } = useAuth()
+  const { user, userRole, isSuperAdmin, isHotelAdmin, isPropertyAdmin } = useAuth()
+  
+  console.log('User Role:', userRole)
+  console.log('User Data:', user)
+  console.log('isSuperAdmin:', isSuperAdmin)
+  console.log('isHotelAdmin:', isHotelAdmin)
+  console.log('isPropertyAdmin:', isPropertyAdmin)
 
   const getDashboard = () => {
-    switch(userRole) {
-      case 'super_admin':
-        return <SuperAdminDashboard />
-      case 'hotel_admin':
-        return <HotelAdminDashboard />
-      case 'property_admin':
-        return <PropertyAdminDashboard />
-      case 'staff':
-        return <StaffDashboard />
-      default:
-        return <SuperAdminDashboard />
+    // Check by email first for super admin
+    if (user?.email === 'admin@gmail.com' || isSuperAdmin) {
+      return <SuperAdminDashboard />
     }
+    // Check for tenant admin (hotel admin)
+    if (user?.is_tenant_admin === true || isHotelAdmin) {
+      return <HotelAdminDashboard />
+    }
+    // Check for property admin
+    if (user?.is_property_admin === true || isPropertyAdmin) {
+      return <PropertyAdminDashboard />
+    }
+    // Default to staff dashboard
+    return <StaffDashboard />
   }
 
   return (

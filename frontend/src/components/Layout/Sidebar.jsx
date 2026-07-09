@@ -6,7 +6,10 @@ import {
   BuildingOfficeIcon, 
   HomeModernIcon, 
   UsersIcon,
-  UserCircleIcon
+  UserGroupIcon,
+  UserCircleIcon,
+  BuildingLibraryIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline'
 
 const Sidebar = () => {
@@ -17,30 +20,29 @@ const Sidebar = () => {
     if (user?.email === 'admin@gmail.com' || isSuperAdmin) {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-        { name: 'Tenants', href: '/hotels', icon: BuildingOfficeIcon },
+        { name: 'Tenants', href: '/hotels', icon: BuildingLibraryIcon },
         
       ]
     }
     
-    // Tenant admin navigation
-    if (isHotelAdmin) {
+    // Hotel Admin (Tenant Admin) navigation
+    if (isHotelAdmin || user?.is_tenant_admin === true) {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
         { name: 'Properties', href: '/properties', icon: HomeModernIcon },
-        { name: 'Roles', href: '/roles', icon: UsersIcon },
+        { name: 'Roles', href: '/roles', icon: UserGroupIcon },
         { name: 'Staff', href: '/staff', icon: UsersIcon },
-        
         
       ]
     }
     
-    // Property admin navigation
+    // Property Admin navigation
     if (isPropertyAdmin) {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-        { name: 'Roles', href: '/roles', icon: UsersIcon },
+        { name: 'Roles', href: '/roles', icon: UserGroupIcon },
         { name: 'Staff', href: '/staff', icon: UsersIcon },
-        
+        { name: 'Profile', href: '/profile', icon: UserCircleIcon },
       ]
     }
     
@@ -55,7 +57,7 @@ const Sidebar = () => {
 
   // Determine role label
   const userRole = user?.email === 'admin@gmail.com' ? 'Super Admin' : 
-                   isHotelAdmin ? 'Hotel Admin' : 
+                   (isHotelAdmin || user?.is_tenant_admin === true) ? 'Hotel Admin' : 
                    isPropertyAdmin ? 'Property Admin' : 'Staff';
 
   return (
@@ -68,7 +70,7 @@ const Sidebar = () => {
       </div>
       
       {/* Navigation */}
-      <nav className="flex-1 mt-8 px-4">
+      <nav className="flex-1 mt-8 px-4 overflow-y-auto">
         <p className="px-4 mb-4 text-[10px] text-stone-500 uppercase tracking-[0.2em]">Operations</p>
         <div className="space-y-1">
           {navigation.map((item) => (
@@ -106,16 +108,22 @@ const Sidebar = () => {
           </p>
           
           <div className="pt-4 mt-2 border-t border-stone-800 space-y-1.5">
-            {user?.hotel_name && (
+            {user?.tenant_name && (
               <div className="flex items-center text-xs text-stone-500">
-                <span className="text-stone-600 mr-2">Hotel:</span> 
-                <span className="text-stone-400 truncate">{user.hotel_name}</span>
+                <span className="text-stone-600 mr-2">Tenant:</span> 
+                <span className="text-stone-400 truncate">{user.tenant_name}</span>
               </div>
             )}
             {user?.property_name && (
               <div className="flex items-center text-xs text-stone-500">
-                <span className="text-stone-600 mr-2">Prop:</span> 
+                <span className="text-stone-600 mr-2">Property:</span> 
                 <span className="text-stone-400 truncate">{user.property_name}</span>
+              </div>
+            )}
+            {user?.employee_code && (
+              <div className="flex items-center text-xs text-stone-500">
+                <span className="text-stone-600 mr-2">Employee Code:</span> 
+                <span className="text-stone-400 truncate">{user.employee_code}</span>
               </div>
             )}
           </div>

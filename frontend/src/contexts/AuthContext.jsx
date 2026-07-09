@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
   const loadUser = async () => {
     try {
       const userData = await getCurrentUser()
-      console.log('User data from API:', userData) // Debug log
+      console.log('User data from API:', userData)
       setUser(userData)
     } catch (error) {
       console.error('Failed to load user:', error)
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token)
       await loadUser()
       toast.success(`Welcome ${response.name}!`)
-      return { success: true, role: response.is_super_admin ? 'super_admin' : (response.is_hotel_admin ? 'hotel_admin' : (response.is_property_admin ? 'property_admin' : 'staff')) }
+      return { success: true, role: response.is_super_admin ? 'super_admin' : (response.is_tenant_admin ? 'tenant_admin' : (response.is_property_admin ? 'property_admin' : 'staff')) }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed')
       return { success: false }
@@ -62,12 +62,22 @@ export const AuthProvider = ({ children }) => {
 
   const getUserRole = () => {
     if (!user) return null
-    // Check for super admin first (by email or is_super_admin flag)
+    
+    // Check for super admin (by email or flag)
     if (user.email === 'admin@gmail.com' || user.is_super_admin === true) {
       return 'super_admin'
     }
-    if (user.is_hotel_admin === true) return 'hotel_admin'
-    if (user.is_property_admin === true) return 'property_admin'
+    
+    // Check for tenant admin (hotel admin)
+    if (user.is_tenant_admin === true) {
+      return 'tenant_admin'
+    }
+    
+    // Check for property admin
+    if (user.is_property_admin === true) {
+      return 'property_admin'
+    }
+    
     return 'staff'
   }
 
@@ -79,9 +89,9 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token,
     userRole: getUserRole(),
     isSuperAdmin: user?.email === 'admin@gmail.com' || user?.is_super_admin === true,
-    isHotelAdmin: user?.is_hotel_admin === true && user?.email !== 'admin@gmail.com',
-    isPropertyAdmin: user?.is_property_admin === true && !user?.is_hotel_admin && user?.email !== 'admin@gmail.com',
-    isStaff: !user?.is_hotel_admin && !user?.is_property_admin && user?.email !== 'admin@gmail.com' && !!user
+    isHotelAdmin: user?.is_tenant_admin === true,  // tenant_admin = hotel_admin
+    isPropertyAdmin: user?.is_property_admin === true && user?.is_tenant_admin !== true,
+    isStaff: !user?.is_tenant_admin && !user?.is_property_admin && user?.email !== 'admin@gmail.com' && !!user
   }
 
   return (
