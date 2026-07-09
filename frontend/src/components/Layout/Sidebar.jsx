@@ -63,7 +63,7 @@ const Sidebar = () => {
       
       {/* Header / Branding */}
       <div className="p-8 border-b border-stone-800">
-        <h1 className="font-serif text-2xl text-stone-100 tracking-tight">Aurora PMS</h1>
+        <h1 className="font-serif text-2xl text-stone-100 tracking-tight">PMS & Channel</h1>
         <p className="text-[10px] text-stone-500 mt-1 uppercase tracking-[0.2em]">Management Suite</p>
       </div>
       
