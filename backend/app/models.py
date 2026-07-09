@@ -22,7 +22,10 @@ class Tenant(Base):
     properties = relationship("Property", back_populates="tenant", cascade="all, delete-orphan")
     staff = relationship("Staff", back_populates="tenant", cascade="all, delete-orphan")
     roles = relationship("Role", back_populates="tenant", cascade="all, delete-orphan")
-    
+    buildings = relationship("Building", back_populates="tenant", cascade="all, delete-orphan")
+    floors = relationship("Floor", back_populates="tenant", cascade="all, delete-orphan")
+    room_types = relationship("RoomType", back_populates="tenant", cascade="all, delete-orphan")
+    rooms = relationship("Room", back_populates="tenant", cascade="all, delete-orphan")
 
 class Property(Base):
     __tablename__ = "properties"
@@ -85,7 +88,11 @@ class Staff(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="staff")
+    property = relationship("Property", back_populates="staff")
+    role = relationship("Role", back_populates="staff")
 
 class Building(Base):
     __tablename__ = "buildings"
@@ -99,7 +106,9 @@ class Building(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="buildings")
     property = relationship("Property", back_populates="buildings")
     floors = relationship("Floor", back_populates="building", cascade="all, delete-orphan")
 
@@ -115,7 +124,9 @@ class Floor(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="floors")
     property = relationship("Property", back_populates="floors")
     building = relationship("Building", back_populates="floors")
     rooms = relationship("Room", back_populates="floor", cascade="all, delete-orphan")
@@ -132,10 +143,11 @@ class RoomType(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="room_types")
     property = relationship("Property", back_populates="room_types")
     rooms = relationship("Room", back_populates="room_type", cascade="all, delete-orphan")
-
 
 class Room(Base):
     __tablename__ = "rooms"
@@ -150,14 +162,9 @@ class Room(Base):
     status = Column(String(20), default='ACTIVE')
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    
+    # Relationships - SINGLE DEFINITION
+    tenant = relationship("Tenant", back_populates="rooms")
     property = relationship("Property", back_populates="rooms")
     floor = relationship("Floor", back_populates="rooms")
     room_type = relationship("RoomType", back_populates="rooms")
-
-    # Relationships
-    tenant = relationship("Tenant", back_populates="rooms")  # ✅ CORRECT
-    property = relationship("Property", back_populates="rooms")  # ✅ CORRECT
-    floor = relationship("Floor", back_populates="rooms")  # ✅ CORRECT
-    room_type = relationship("RoomType", back_populates="rooms")  # ✅ CORRECT
-    
