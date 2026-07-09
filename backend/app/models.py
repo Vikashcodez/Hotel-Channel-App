@@ -156,7 +156,8 @@ class Room(Base):
     room_type = relationship("RoomType", back_populates="rooms")
 
     # Relationships
-    tenant = relationship("Tenant", back_populates="staff")
-    property = relationship("Property", back_populates="staff")
-    role = relationship("Role", back_populates="staff")
+    tenant = relationship("Tenant", back_populates="rooms")  # ✅ CORRECT
+    property = relationship("Property", back_populates="rooms")  # ✅ CORRECT
+    floor = relationship("Floor", back_populates="rooms")  # ✅ CORRECT
+    room_type = relationship("RoomType", back_populates="rooms")  # ✅ CORRECT
     
