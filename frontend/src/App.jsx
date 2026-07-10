@@ -9,7 +9,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard'
 import HotelAdminDashboard from './pages/HotelAdminDashboard'
 import PropertyAdminDashboard from './pages/PropertyAdminDashboard'
 import StaffDashboard from './pages/StaffDashboard'
-import Hotels from './pages/Hotels'
+import Tenants from './pages/Hotels'
 import Properties from './pages/Properties'
 import Staff from './pages/Staff'
 import Roles from './pages/Roles'
@@ -26,16 +26,16 @@ function AppRoutes() {
   console.log('isPropertyAdmin:', isPropertyAdmin)
 
   const getDashboard = () => {
-    // Check by email first for super admin
-    if (user?.email === 'admin@gmail.com' || isSuperAdmin) {
+    // Check by is_super_admin flag from backend
+    if (isSuperAdmin) {
       return <SuperAdminDashboard />
     }
     // Check for tenant admin (hotel admin)
-    if (user?.is_tenant_admin === true || isHotelAdmin) {
+    if (isHotelAdmin) {
       return <HotelAdminDashboard />
     }
     // Check for property admin
-    if (user?.is_property_admin === true || isPropertyAdmin) {
+    if (isPropertyAdmin) {
       return <PropertyAdminDashboard />
     }
     // Default to staff dashboard
@@ -53,7 +53,7 @@ function AppRoutes() {
           <Route path="/dashboard" element={getDashboard()} />
           
           {/* Super Admin Routes */}
-          <Route path="/hotels" element={<Hotels />} />
+          <Route path="/hotels" element={<Tenants />} />
           <Route path="/properties" element={<Properties />} />
           <Route path="/staff" element={<Staff />} />
           <Route path="/roles" element={<Roles />} />
