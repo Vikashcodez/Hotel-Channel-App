@@ -21,6 +21,7 @@ const BaseURL = import.meta.env.VITE_API_URL;
 const Properties = () => {
   const {user} = useAuth();
   const tenantId = user?.tenant_id; 
+  console.log(tenantId);
   const [properties, setProperties] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
